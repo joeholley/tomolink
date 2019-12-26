@@ -44,13 +44,6 @@ func (mr *malformedRequest) Error() string {
 }
 
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	//if r.Header.Get("Content-Type") != "" {
-	//	value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
-	//	if value != "application/json" {
-	//		msg := "Content-Type header is not application/json"
-	//		return &malformedRequest{status: http.StatusUnsupportedMediaType, msg: msg}
-	//	}
-	//}
 
 	maxLength := 4096 // Sane defaul of 4k max request size
 	if value, err := strconv.Atoi(os.Getenv("TL_REQ_MAX_LENGTH")); err == nil {

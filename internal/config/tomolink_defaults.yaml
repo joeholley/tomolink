@@ -1,0 +1,19 @@
+dev: true
+relationships:
+    strict: true
+    # Doing this using a length and 0-indexed map instead of a standard YAML list is necessary to preserve
+    # the ability to override this config using env vars.  For more details, see the README.md file.
+    count: 4
+    0:
+        name: friends
+        type: timestamp     # timestamp, score, list
+    1:
+        name: influencers
+        type: score
+    2:
+        name: followers
+        type: score
+    3:
+        name: blocks
+        type: list
+
