@@ -24,7 +24,7 @@ func Read(appName string) (*goconfig.Config, error) {
 	cfgLog = log.WithFields(logFields)
 
 	// Read and load YAML file
-	defaultsFileName := appName + "_defaults.yaml"
+	defaultsFileName := "./" + appName + "_defaults.yaml"
 	d := goconfig.NewYAMLFile(defaultsFileName)
 	defaults := goconfig.NewOnceLoader(d)
 
@@ -44,15 +44,18 @@ func Read(appName string) (*goconfig.Config, error) {
 		"Due to differences between how environment variables and YAML goconfig keys are named, " +
 		"please see the documentation for more details on this feature")
 
-	// log config parameters overridden by environment variables, and set a
+	// get config parameters overridden by environment variables, and set a
 	// counter of how many overrides were proccessed. Consumers of this package can
-	// read that counter, useful for debugging, logging, and testing.
-	numOverrides, err := logOverrides(goconfig.NewOnceLoader(env))
+	// then see what has been overridden, useful for debugging, logging, and testing.
+	overrides, err := getOverrides(goconfig.NewOnceLoader(env))
 	if err != nil {
 		return nil, err
 	}
-	cnt := map[string]string{"config.envVarOverrideCount": strconv.Itoa(numOverrides)}
-	overrideCounter := goconfig.NewStatic(cnt)
+	cp := map[string]string{"envVarOverride.count": strconv.Itoa(len(overrides))}
+	for k, v := range overrides {
+		cp["envVarOverride."+k] = v
+	}
+	overrideCounter := goconfig.NewStatic(cp)
 
 	// build goconfig out of all sources, last source wins in conflicts
 	sources := []goconfig.Provider{defaults, envLoader, overrideCounter}
@@ -127,18 +130,18 @@ func getMappings(defaults *goconfig.OnceLoader) (map[string]string, error) {
 //logOverrides makes a throw-away copy of the goconfig containing ONLY
 //environment variables that are overriding YAML goconfig values, and prints
 //those to the log. This is just for ease of use and debugging.
-func logOverrides(defaults *goconfig.OnceLoader) (int, error) {
+func getOverrides(defaults *goconfig.OnceLoader) (map[string]string, error) {
 
 	// Read app goconfig env vars
 	sources := []goconfig.Provider{defaults}
 	cfg := goconfig.NewConfig(sources)
 	if err := cfg.Load(); err != nil {
-		return 0, err
+		return nil, err
 		//cfgLog.Fatal(err)
 	}
 	settings, err := cfg.Settings()
 	if err != nil {
-		return 0, err
+		return nil, err
 		//cfgLog.Fatal(err)
 	}
 
@@ -152,5 +155,5 @@ func logOverrides(defaults *goconfig.OnceLoader) (int, error) {
 		}).Info("Override for default YAML value found in environment variable!")
 	}
 
-	return len(settings), nil
+	return settings, nil
 }

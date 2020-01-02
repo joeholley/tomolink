@@ -1,4 +1,11 @@
 dev: true
+logging:
+    format: text
+    level: debug 
+http:
+    request:
+        # Limit the size of incoming requests to something sensible, abuse prevention measure
+        readLimit: 500
 relationships:
     strict: true
     # Doing this using a length and 0-indexed map instead of a standard YAML list is necessary to preserve
