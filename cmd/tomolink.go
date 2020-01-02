@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package app contains the application initialization code for the Tomolink service.
+// Package main contains the application initialization code for the Tomolink service.
+// Actual code for the service itself can be found in ../internal/app/tomolink
 package main
 
 import (
@@ -36,9 +37,9 @@ var (
 func main() {
 
 	// Read config file, file name is
-	//   ../internal/config/<string_argument>_defaults.cfg
+	//   <string_argument>_defaults.cfg
 	// so in this case it will be called
-	//   ../internal/config/tomolink_defaults.cfg
+	//   tomolink_defaults.cfg
 	cfg, err := config.Read("tomolink")
 	if err != nil {
 		tlLog.WithFields(logrus.Fields{
