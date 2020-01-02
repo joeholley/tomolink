@@ -16,14 +16,14 @@ logging:
     format: text
     level: debug 
 http:
+    port: 8080
     request:
         # Limit the size of incoming requests to something sensible, abuse prevention measure
         readLimit: 500
 relationships:
     strict: true
-    # Doing this using a length and 0-indexed map instead of a standard YAML list is necessary to preserve
+    # Doing this using a 0-indexed map instead of a standard YAML array is necessary to preserve
     # the ability to override this config using env vars.  For more details, see the README.md file.
-    count: 4
     0:
         name: friends
         type: timestamp     # timestamp, score, list

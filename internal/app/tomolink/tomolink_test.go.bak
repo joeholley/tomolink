@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/joeholley/tomolink/internal/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,11 +18,19 @@ import (
 var (
 	testBody map[string]string
 	router   *mux.Router
+	common   *Common
+	err      error
 )
 
 func TestMain(m *testing.M) {
 	// Set up tests
-	router = Router()
+	common = &Common{}
+	common.C, err = config.Read("tomolink")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router = Router(common)
 	testBody = map[string]string{"this": "yep"}
 
 	flag.Parse()

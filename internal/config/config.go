@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // Package config provides config file loading and overridding using env vars.
-
 package config
 
 import (
@@ -113,7 +112,7 @@ func Read(appName string) (*goconfig.Config, error) {
 //
 //Example:
 // YAML file goconfig key			env var name
-// tl.relationships.strict		TL_RELATIONSHIPS_STRICT
+// relationships.strict				RELATIONSHIPS_STRICT
 func getMappings(defaults *goconfig.OnceLoader) (map[string]string, error) {
 	mappings := make(map[string]string)
 

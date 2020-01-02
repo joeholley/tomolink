@@ -3,6 +3,7 @@ module github.com/joeholley/tomolink
 go 1.13
 
 require (
+	cloud.google.com/go/firestore v1.1.0
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect

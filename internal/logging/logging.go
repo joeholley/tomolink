@@ -28,6 +28,7 @@ import (
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
 func ConfigureLogging(format string, lvl string) {
 	logrus.SetFormatter(newFormatter(format))
+	logrus.SetReportCaller(true)
 	level := toLevel(lvl)
 	logrus.SetLevel(level)
 	if isDebugLevel(level) {
