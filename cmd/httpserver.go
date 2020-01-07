@@ -43,11 +43,19 @@ func main() {
 	// so in this case it will be called
 	//   tomolink_defaults.cfg
 	ac := config.AppConfig{}
-	err := ac.Read("tomolink")
+	err := ac.Load("tomolink")
 	if err != nil {
 		tlLog.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Fatalf("Cannot load configuration")
+	}
+
+	// Connect to database defined in the config file (default is GC Firestore)
+	err := ac.Connect(ac.Cfg.Stringor("database.engine", "firestore"))
+	if err != nil {
+		tlLog.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("Cannot connect to database")
 	}
 
 	// set up logrus structured logging

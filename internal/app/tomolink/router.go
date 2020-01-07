@@ -27,10 +27,13 @@ import (
 // String constants to make our path construction more readable.
 const source = "{UUIDSource}"
 const target = "{UUIDTarget}"
+const relStart = "{relationship"
+const relEnd = "}"
 
 var (
 	// Logrus structured logging setup
-	tlLog = logrus.WithFields(logrus.Fields{})
+	tlLog    = logrus.WithFields(logrus.Fields{})
+	relRegex = ""
 )
 
 // Router instantiates a new gorilla mux router and adds the various routes and
@@ -40,76 +43,64 @@ func Router(ac *config.AppConfig) *mux.Router {
 	r := mux.NewRouter()
 	users := r.PathPrefix("/users").Subrouter()
 
-	/*
-		// Loop through all relationships defined in the config file.
-		for i := 0; i < config.MaxRelationships; i++ {
-			// Figure out config keys for this relationship
-			index := fmt.Sprintf("relationships.%d", i)
-			nameKey := index + ".name"
-			kindKey := index + ".type"
-
-			// Initialize routes and handlers for this relationship
-			relationship, err := ac.Cfg.String(nameKey)
-
-			if err != nil {
-				if err.Error() == fmt.Sprintf("Required setting '%s' not set", nameKey) {
-					tlLog.Info(fmt.Sprintf("No '%s' configured. Done processing relationships from the config", nameKey))
-					break
-				}
-				log.Fatal(err)
-			}
-
-			// 'type' is a keyword, so we use var name 'kind' to hold the type
-			kind, err := ac.Cfg.String(kindKey)
-			if err != nil {
-				if err.Error() == fmt.Sprintf("Required setting '%s' not set", kindKey) {
-					tlLog.Info(fmt.Sprintf("No '%s' configured. Done processing relationships from the config", kindKey))
-					break
-				}
-				log.Fatal(err)
-			}
-
-			// Set up fields for structured logs
-			f := logrus.Fields{"relationshipIndex": i,
-				"rName":            relationship,
-				"relationshipType": kind,
-			}
-
-			// Relationship types that support retreiving a single relationship 'score'
-			if kind == "timestamp" || kind == "score" {
-				// GET endpoint for one score of this relationship type
-				route := "/" + source + "/" + relationship + "/" + target
-				name := "retrieve_one_" + relationship
-				users.Handle(route, Handler{ac, CreateEndpoint}).
-					Methods("GET").
-					Name("retrieveone" + name + kind)
-				tlLog.WithFields(f).Info(fmt.Sprintf("Added '/users%s' route", route))
-			}
-
-			// GET endpoint for all of this relationship type of a given user
-			route := "/" + source + "/" + relationship
-			name := "retrieve_all_" + relationship
-			users.Handle(route, Handler{ac, CreateEndpoint}).
-				Methods("GET").
-				Name(name)
-			tlLog.WithFields(f).Info(fmt.Sprintf("Added '/users%s' route", route))
-
+	// Check if strict relationships are enabled, in which case we will only
+	// process a relationship request if this relationship is defined in the
+	// application config
+	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
+		tlLog.Info("Strict relationships turned ON, parsing config to generate routes")
+		// Start a regex unnamed group
+		relRegex = ":(?:"
+		for rel, _ := range ac.Relationships {
+			relRegex = relRegex + rel + "|"
 		}
-	*/
+		// Remove last trailing vertical pipe and finish the group
+		relRegex = relRegex[:len(relRegex)-1] + ")"
 
-	// {relationship:(?:1|2|3|4)}
-	tlLog.Info(fmt.Sprintf("Relationships: %s", ac.Relationships))
+	}
+	// This is accomplished by creating a regex that matches using an unnamed
+	// group.  In practice, this concatinates three values: relStart + relRegex
+	// + relEnd.  relStart and relEnd provide us with a gorilla mux URL
+	// variable named "relationship", and relRegex can contain the regex to
+	// match only the defined relationship names. For example, if the config sets
+	// strict relationships on and then defines four relationships called 'a',
+	// 'b', 'c', and 'd', the final concatinated value should look something
+	// like this:
+	//   {relationship:(?:a|b|c|d)}
+	// for more information on the format supported by gorilla mux, see the
+	// section starting with "Groups can be used inside patterns, as long
+	// as they are non-capturing" on
+	// https://godoc.org/github.com/gorilla/mux
+	relationship := relStart + relRegex + relEnd
 
-	tlLog.Info("All configured relationship endpoints created")
+	// Relationship types that support retreiving a single relationship 'score'
+	// GET endpoint for one score of this relationship type
+	route := "/" + source + "/" + relationship + "/" + target
+	users.Handle(route, Handler{ac, RetrieveSingleRelationship}).
+		Methods("GET").
+		Name("TODO")
+	tlLog.WithFields(logrus.Fields{
+		"route": fmt.Sprintf("/users%s", route),
+	}).Info("Added route")
+
+	// GET endpoint for all of one relationship type of a given user
+	route = "/" + source + "/" + relationship
+	users.Handle(route, Handler{ac, RetrieveUserRelationshipsByType}).
+		Methods("GET").
+		Name("TODO2")
+	tlLog.WithFields(logrus.Fields{
+		"route": fmt.Sprintf("/users%s", route),
+	}).Info("Added route")
 
 	// You can find the handlers in handlers.go
-	users.Handle("/"+source, Handler{ac, Retrieve}).
+	users.Handle("/"+source, Handler{ac, RetrieveUserRelationships}).
+		Headers("Content-Type", "application/json").
 		Methods("GET").
-		Name("retrieve_user_all")
+		Name("TODO3")
 	//	r.HandleFunc("/users/{UUID}", CreateEndpoint).
 	//		Methods("GET", "PUT").
 	//		Name("retrieve")
-	r.Handle("/create2", Handler{ac, CreateEndpoint2}).Methods("GET").Headers("Content-Type", "application/json").Name("Test2")
+	//r.Handle("/create2", Handler{ac, CreateEndpoint2}).Methods("GET").Headers("Content-Type", "application/json").Name("Test2")
+	tlLog.Info("All configured relationship endpoints created")
 
 	// Middleware handles strict relationship checking if enabled
 	// Look for strict relationships flag in the config; default to true

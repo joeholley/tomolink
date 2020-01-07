@@ -18,19 +18,19 @@ import (
 var (
 	testBody map[string]string
 	router   *mux.Router
-	common   *Common
+	ac *config.AppConfig
 	err      error
 )
 
 func TestMain(m *testing.M) {
 	// Set up tests
-	common = &Common{}
-	common.C, err = config.Read("tomolink")
+	ac := config.AppConfig{}
+	err = ac.Load("test")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	router = Router(common)
+	router = Router(&ac)
 	testBody = map[string]string{"this": "yep"}
 
 	flag.Parse()

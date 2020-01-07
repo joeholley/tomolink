@@ -15,13 +15,14 @@
 package tomolink
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/golang/gddo/httputil/header"
+	"github.com/gorilla/mux"
+	"github.com/joeholley/tomolink/internal/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,8 +30,9 @@ var (
 	hnLog = logrus.WithFields(logrus.Fields{})
 )
 
+/*
 // CreateEndpoint2 ++
-func CreateEndpoint2(common *Common, w http.ResponseWriter, r *http.Request) error {
+func CreateEndpoint2(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
 	var p map[string]string
 	err := decodeJSONBody(w, r, &p)
 	if err != nil {
@@ -44,10 +46,11 @@ func CreateEndpoint2(common *Common, w http.ResponseWriter, r *http.Request) err
 
 	return err
 }
+*/
 
 // CreateEndpoint is WIP
 //func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
-func CreateEndpoint(common *Common, w http.ResponseWriter, r *http.Request) error {
+func CreateEndpoint(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
 	// Check that the content header (if set) is application/json
 	if r.Header.Get("Content-Type") != "" {
 		value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
@@ -81,5 +84,76 @@ func CreateEndpoint(common *Common, w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 	io.WriteString(w, `{"body": "nope"}`)
+	return nil
+}
+
+// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
+func RetrieveUserRelationships(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+
+	// Populate fields in the logrus structured logging
+	reLog := hnLog.WithFields(logrus.Fields{
+		"UUIDSource": vars["UUIDSource"],
+	})
+	reLog.Debug("RetrieveUserRelationships called")
+
+	w.Header().Set("Content-Type", "application/json")
+	return nil
+}
+
+// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
+func RetrieveSingleRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+
+	// Populate fields in the logrus structured logging
+	reLog := hnLog.WithFields(logrus.Fields{
+		"UUIDSource": vars["UUIDSource"],
+	})
+	if vars["UUIDTarget"] != "" {
+		reLog = reLog.WithFields(logrus.Fields{
+			"UUIDTarget": vars["UUIDTarget"],
+		})
+	}
+	if vars["relationship"] != "" {
+		reLog = reLog.WithFields(logrus.Fields{
+			"relationship": vars["relationship"],
+		})
+	}
+	reLog.Debug("RetrieveSingleRelationship called")
+
+	w.Header().Set("Content-Type", "application/json")
+	return nil
+}
+
+// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
+func RetrieveUserRelationshipsByType(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+
+	// Populate fields in the logrus structured logging
+	reLog := hnLog.WithFields(logrus.Fields{
+		"UUIDSource": vars["UUIDSource"],
+	})
+	if vars["relationship"] != "" {
+		reLog = reLog.WithFields(logrus.Fields{
+			"relationship": vars["relationship"],
+		})
+	}
+
+	reLog.Debug("retrieveAllUserRelationships called")
+
+	// Check if strict relationships are enabled, in which case we will only
+	// process a relationship request if this relationship is defined in the
+	// application config
+	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
+	}
+
+	// No target UUID or relationship provided; retreive the entire database record for this user
+	if vars["UUIDTarget"] == "" && vars["relationship"] == "" {
+
+	}
+
+	// Both target UUID and relationship are provided; we are being asked to retreive one relationship
+
+	w.Header().Set("Content-Type", "application/json")
 	return nil
 }

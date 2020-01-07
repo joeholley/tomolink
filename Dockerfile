@@ -33,4 +33,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tomolink
 FROM scratch
 COPY --from=builder /app/tomolink /app/cmd/tomolink
 EXPOSE 8080
+# If you need default env vars for your environment: 
+# ENV KEY1=VALUE1,KEY2=VALUE2
 ENTRYPOINT ["/app/tomolink"]

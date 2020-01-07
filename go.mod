@@ -17,6 +17,7 @@ require (
 	github.com/urfave/cli v1.22.2 // indirect
 	github.com/zpatrick/go-config v0.0.0-20191118215128-80ba6b3e54f6
 	golang.org/x/sys v0.0.0-20191224085550-c709ea063b76 // indirect
+	google.golang.org/api v0.13.0
 	gopkg.in/ini.v1 v1.51.1 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 	open-match.dev/open-match v0.8.0

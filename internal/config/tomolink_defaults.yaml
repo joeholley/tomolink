@@ -15,25 +15,38 @@ dev: true
 logging:
     format: text
     level: debug 
+database:
+    engine: firestore
+    id: "*detect-project-id*" # in the case of firestore, should be set to the GCP project ID 
+    options:
+        grpc:
+            pool: 20
 http:
-    port: 8080
+    port: 8080         # Port to serve on
+    gracefulwait: 15   # Seconds to wait for requests to finish if graceful shutdown of server is requested
     request:
-        # Limit the size of incoming requests to something sensible, abuse prevention measure
-        readLimit: 500
+        readLimit: 500 # Limit the size of incoming requests to something sensible, abuse prevention measure
 relationships:
     strict: true
+    # Out-of-the-box, Tomolink supports tracking of up to 10 different kinds of relationships.
     # Doing this using a 0-indexed map instead of a standard YAML array is necessary to preserve
     # the ability to override this config using env vars.  For more details, see the README.md file.
-    0:
-        name: friends
-        type: timestamp     # timestamp, score, list
-    1:
-        name: influencers
-        type: score
-    2:
-        name: followers
-        type: score
-    3:
-        name: blocks
-        type: list
-
+    definitions:
+        0:
+            name: friends
+            type: timestamp     # timestamp, score, list
+        1:
+            name: influencers
+            type: score
+        2:
+            name: followers
+            type: score
+        3:
+            name: blocks
+            type: list
+        4: Null
+        5: Null
+        6: Null
+        7: Null
+        8: Null
+        9: Null
