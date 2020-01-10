@@ -26,13 +26,16 @@ import (
 // logging section of the config file.
 //  - log line format (text[default] or json)
 //  - min log level to include (debug, info [default], warn, error, fatal, panic)
-func ConfigureLogging(format string, lvl string) {
+func ConfigureLogging(format string, lvl string, verbose bool) {
 	logrus.SetFormatter(newFormatter(format))
 	logrus.SetReportCaller(true)
 	level := toLevel(lvl)
 	logrus.SetLevel(level)
 	if isDebugLevel(level) {
 		logrus.Warn("Trace logging level configured. Not recommended for production!")
+	}
+	if verbose {
+		logrus.Warn("Verbose logging configured. Not recommended for production!")
 	}
 }
 

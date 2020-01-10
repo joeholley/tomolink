@@ -15,9 +15,11 @@ dev: true
 logging:
     format: text
     level: debug 
+    verbose: true
 database:
     engine: firestore
-    id: "*detect-project-id*" # in the case of firestore, should be set to the GCP project ID 
+    #id: "*detect-project-id*" # in the case of firestore, should be set to the GCP project ID 
+    id: "my-project-id" # in the case of firestore, should be set to the GCP project ID 
     options:
         grpc:
             pool: 20

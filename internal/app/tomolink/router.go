@@ -39,6 +39,8 @@ var (
 // Router instantiates a new gorilla mux router and adds the various routes and
 // handlers.  This is exported as it is also instantiated by the tests in
 // tomolink_test.go
+//
+// You can find the code for the handlers in handlers.go
 func Router(ac *config.AppConfig) *mux.Router {
 	r := mux.NewRouter()
 	users := r.PathPrefix("/users").Subrouter()
@@ -91,16 +93,46 @@ func Router(ac *config.AppConfig) *mux.Router {
 		"route": fmt.Sprintf("/users%s", route),
 	}).Info("Added route")
 
-	// You can find the handlers in handlers.go
-	users.Handle("/"+source, Handler{ac, RetrieveUserRelationships}).
-		Headers("Content-Type", "application/json").
+	// GET endpoint for all relationships of a given user
+	route = "/" + source
+	users.Handle(route, Handler{ac, RetrieveUserRelationships}).
 		Methods("GET").
 		Name("TODO3")
-	//	r.HandleFunc("/users/{UUID}", CreateEndpoint).
-	//		Methods("GET", "PUT").
-	//		Name("retrieve")
-	//r.Handle("/create2", Handler{ac, CreateEndpoint2}).Methods("GET").Headers("Content-Type", "application/json").Name("Test2")
+	tlLog.WithFields(logrus.Fields{
+		"route": fmt.Sprintf("/users%s", route),
+	}).Info("Added route")
+
 	tlLog.Info("All configured relationship endpoints created")
+
+	// POST endpoint to create relationship (or multiple mutual relationships)
+	route = "/createRelationship"
+	r.Handle(route, Handler{ac, CreateRelationship}).
+		Headers("Content-Type", "application/json").
+		Methods("POST").
+		Name("TODO4")
+	tlLog.WithFields(logrus.Fields{
+		"route": route,
+	}).Info("Added route")
+
+	// POST endpoint to update relationship (or multiple mutual relationships)
+	route = "/updateRelationship"
+	r.Handle(route, Handler{ac, UpdateRelationship}).
+		Headers("Content-Type", "application/json").
+		Methods("POST").
+		Name("TODO5")
+	tlLog.WithFields(logrus.Fields{
+		"route": route,
+	}).Info("Added route")
+
+	// DELETE endpoint to delete relationship (or multiple mutual relationships)
+	route = "/deleteRelationship"
+	r.Handle(route, Handler{ac, DeleteRelationship}).
+		Headers("Content-Type", "application/json").
+		Methods("DELETE").
+		Name("TODO6")
+	tlLog.WithFields(logrus.Fields{
+		"route": route,
+	}).Info("Added route")
 
 	// Middleware handles strict relationship checking if enabled
 	// Look for strict relationships flag in the config; default to true

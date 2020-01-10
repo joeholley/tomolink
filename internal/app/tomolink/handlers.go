@@ -15,12 +15,8 @@
 package tomolink
 
 import (
-	"errors"
-	"io"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/mux"
 	"github.com/joeholley/tomolink/internal/config"
 	"github.com/sirupsen/logrus"
@@ -29,63 +25,6 @@ import (
 var (
 	hnLog = logrus.WithFields(logrus.Fields{})
 )
-
-/*
-// CreateEndpoint2 ++
-func CreateEndpoint2(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	var p map[string]string
-	err := decodeJSONBody(w, r, &p)
-	if err != nil {
-		hnLog.Fatal(err.Error())
-	}
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/json")
-	t, err := json.Marshal(p)
-	io.WriteString(w, string(t))
-	hnLog.Info(string(t))
-
-	return err
-}
-*/
-
-// CreateEndpoint is WIP
-//func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
-func CreateEndpoint(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	// Check that the content header (if set) is application/json
-	if r.Header.Get("Content-Type") != "" {
-		value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
-		hnLog.Info(value)
-
-		if value != "application/json" {
-			err := errors.New("Content-Type header is not application/json")
-			return StatusError{415, err}
-		}
-	}
-
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/json")
-	var readLimit int64
-	readLimit = 500
-
-	//body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
-	if r.Body != nil {
-		body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
-		//body, err := ioutil.ReadAll(r.Body)
-		_ = body
-		// https: //stackoverflow.com/questions/32710847/what-is-the-best-way-to-check-for-empty-request-body
-		if err != nil {
-			hnLog.Printf("Error reading body: %v", err)
-			return StatusError{400, err}
-		}
-
-		if len(body) > 0 {
-			io.WriteString(w, string(body))
-			return nil
-		}
-	}
-	io.WriteString(w, `{"body": "nope"}`)
-	return nil
-}
 
 // RetrieveUser handles pulling information from the database and returning it to the HTTP client.
 func RetrieveUserRelationships(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
@@ -157,3 +96,136 @@ func RetrieveUserRelationshipsByType(ac *config.AppConfig, w http.ResponseWriter
 	w.Header().Set("Content-Type", "application/json")
 	return nil
 }
+
+func DeleteRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+
+	// Decode input JSON
+	var vars relationship
+	err := decodeJSONBody(w, r, &vars)
+	if err != nil {
+		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
+		return err
+	}
+	drLog := hnLog
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		drLog = relationshipLogger(&vars)
+	}
+	drLog.Debug("JSON request body decoded successfully!")
+
+	// Delete the relationship
+
+	// Check if strict relationships are enabled, in which case we will only
+	// delete if this relationship is defined in the application config
+	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
+		drLog.Debug("Strict")
+	}
+
+	return nil
+}
+
+func CreateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	// Decode input JSON
+	var vars relationship
+	err := decodeJSONBody(w, r, &vars)
+	if err != nil {
+		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
+		return err
+	}
+	crLog := hnLog
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		crLog = relationshipLogger(&vars)
+	}
+	crLog.Debug("JSON request body decoded successfully!")
+
+	// Create the relationship
+
+	// Check if strict relationships are enabled, in which case we will only
+	// create if this relationship is defined in the application config
+	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
+		crLog.Debug("Strict")
+	}
+
+	return nil
+}
+
+func UpdateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	// Decode input JSON
+	var vars relationship
+	err := decodeJSONBody(w, r, &vars)
+	if err != nil {
+		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
+		return err
+	}
+	urLog := hnLog
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		urLog = relationshipLogger(&vars)
+	}
+	urLog.Debug("JSON request body decoded successfully!")
+
+	// Create the relationship
+
+	// Check if strict relationships are enabled, in which case we will only
+	// create if this relationship is defined in the application config
+	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
+		urLog.Debug("Strict")
+	}
+
+	return nil
+}
+
+/*
+
+// CreateEndpoint2 ++
+func CreateEndpoint2(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	var p map[string]string
+	err := decodeJSONBody(w, r, &p)
+	if err != nil {
+		hnLog.Fatal(err.Error())
+	}
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	t, err := json.Marshal(p)
+	io.WriteString(w, string(t))
+	hnLog.Info(string(t))
+
+	return err
+}
+
+// CreateEndpoint is WIP
+//func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
+func CreateEndpoint(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	// Check that the content header (if set) is application/json
+	if r.Header.Get("Content-Type") != "" {
+		value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
+		hnLog.Info(value)
+
+		if value != "application/json" {
+			err := errors.New("Content-Type header is not application/json")
+			return StatusError{415, err}
+		}
+	}
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	var readLimit int64
+	readLimit = 500
+
+	//body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
+	if r.Body != nil {
+		body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
+		//body, err := ioutil.ReadAll(r.Body)
+		_ = body
+		// https: //stackoverflow.com/questions/32710847/what-is-the-best-way-to-check-for-empty-request-body
+		if err != nil {
+			hnLog.Printf("Error reading body: %v", err)
+			return StatusError{400, err}
+		}
+
+		if len(body) > 0 {
+			io.WriteString(w, string(body))
+			return nil
+		}
+	}
+	io.WriteString(w, `{"body": "nope"}`)
+	return nil
+}*/

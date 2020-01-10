@@ -51,7 +51,13 @@ func main() {
 	}
 
 	// Connect to database defined in the config file (default is GC Firestore)
-	err := ac.Connect(ac.Cfg.Stringor("database.engine", "firestore"))
+	dbEngine, err := ac.Cfg.StringOr("database.engine", "firestore")
+	if err != nil {
+		tlLog.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("Problem retreiving database configuration")
+	}
+	err = ac.Connect(dbEngine)
 	if err != nil {
 		tlLog.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -71,7 +77,13 @@ func main() {
 			"error": err.Error(),
 		}).Fatalf("Cannot load logging level configuration")
 	}
-	logging.ConfigureLogging(format, lvl)
+	verbose, err := ac.Cfg.BoolOr("logging.verbose", false)
+	if err != nil {
+		tlLog.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatalf("Cannot load logging verbosity configuration")
+	}
+	logging.ConfigureLogging(format, lvl, verbose)
 
 	// Instantiate router
 	router := tomolink.Router(&ac)
@@ -83,6 +95,7 @@ func main() {
 			"error": err.Error(),
 		}).Warn("Unable to read http port from config; defaulting to serving on port 8080")
 	}
+	tlLog = tlLog.WithFields(logrus.Fields{"port": port})
 
 	// Start server.  Largely this is using the example code from https://github.com/gorilla/mux
 	tlLog.Info("Starting HTTP server")

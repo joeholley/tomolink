@@ -60,18 +60,10 @@ func (se StatusError) Status() int {
 	return se.Code
 }
 
-/*
-// AppConfig holds application-wide configuration.
-type AppConfig struct {
-	DB *firestore.Client
-	C  *goconfig.Config
-}
-*/
-
 // The Handler struct that takes a configured common config and a function
 // matching our useful signature.
 type Handler struct {
-	cfg *config.AppConfig
+	cfg *config.AppConfig // Holds shared configuration, DB connection, etc.
 	H   func(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error
 }
 
