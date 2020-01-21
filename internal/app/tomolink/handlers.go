@@ -15,9 +15,12 @@
 package tomolink
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"cloud.google.com/go/firestore"
 	"github.com/joeholley/tomolink/internal/config"
 	"github.com/sirupsen/logrus"
 )
@@ -26,206 +29,286 @@ var (
 	hnLog = logrus.WithFields(logrus.Fields{})
 )
 
-// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
+// RetrieveUserRelationships handles pulling all information about a single
+// user's outgoing relationships from the database and returning it to the HTTP
+// client.
 func RetrieveUserRelationships(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-
-	// Populate fields in the logrus structured logging
-	reLog := hnLog.WithFields(logrus.Fields{
-		"UUIDSource": vars["UUIDSource"],
-	})
-	reLog.Debug("RetrieveUserRelationships called")
-
-	w.Header().Set("Content-Type", "application/json")
-	return nil
-}
-
-// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
-func RetrieveSingleRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-
-	// Populate fields in the logrus structured logging
-	reLog := hnLog.WithFields(logrus.Fields{
-		"UUIDSource": vars["UUIDSource"],
-	})
-	if vars["UUIDTarget"] != "" {
-		reLog = reLog.WithFields(logrus.Fields{
-			"UUIDTarget": vars["UUIDTarget"],
-		})
-	}
-	if vars["relationship"] != "" {
-		reLog = reLog.WithFields(logrus.Fields{
-			"relationship": vars["relationship"],
-		})
-	}
-	reLog.Debug("RetrieveSingleRelationship called")
-
-	w.Header().Set("Content-Type", "application/json")
-	return nil
-}
-
-// RetrieveUser handles pulling information from the database and returning it to the HTTP client.
-func RetrieveUserRelationshipsByType(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-
-	// Populate fields in the logrus structured logging
-	reLog := hnLog.WithFields(logrus.Fields{
-		"UUIDSource": vars["UUIDSource"],
-	})
-	if vars["relationship"] != "" {
-		reLog = reLog.WithFields(logrus.Fields{
-			"relationship": vars["relationship"],
-		})
-	}
-
-	reLog.Debug("retrieveAllUserRelationships called")
-
-	// Check if strict relationships are enabled, in which case we will only
-	// process a relationship request if this relationship is defined in the
-	// application config
-	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
-	}
-
-	// No target UUID or relationship provided; retreive the entire database record for this user
-	if vars["UUIDTarget"] == "" && vars["relationship"] == "" {
-
-	}
-
-	// Both target UUID and relationship are provided; we are being asked to retreive one relationship
-
-	w.Header().Set("Content-Type", "application/json")
-	return nil
-}
-
-func DeleteRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-
-	// Decode input JSON
-	var vars relationship
-	err := decodeJSONBody(w, r, &vars)
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	reLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
 	if err != nil {
-		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
 		return err
 	}
-	drLog := hnLog
 	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
-		drLog = relationshipLogger(&vars)
+		reLog = params.VerboseLogger()
 	}
-	drLog.Debug("JSON request body decoded successfully!")
+	reLog.Debug("request parameters retrieved")
 
-	// Delete the relationship
-
-	// Check if strict relationships are enabled, in which case we will only
-	// delete if this relationship is defined in the application config
-	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
-		drLog.Debug("Strict")
-	}
-
-	return nil
-}
-
-func CreateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	// Decode input JSON
-	var vars relationship
-	err := decodeJSONBody(w, r, &vars)
+	// Get this relationship type for this user
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	docsnap, err := doc.Get(r.Context())
 	if err != nil {
-		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
-		return err
-	}
-	crLog := hnLog
-	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
-		crLog = relationshipLogger(&vars)
-	}
-	crLog.Debug("JSON request body decoded successfully!")
-
-	// Create the relationship
-
-	// Check if strict relationships are enabled, in which case we will only
-	// create if this relationship is defined in the application config
-	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
-		crLog.Debug("Strict")
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
 	}
 
-	return nil
-}
-
-func UpdateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	// Decode input JSON
-	var vars relationship
-	err := decodeJSONBody(w, r, &vars)
-	if err != nil {
-		hnLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Error encountered")
-		return err
-	}
-	urLog := hnLog
-	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
-		urLog = relationshipLogger(&vars)
-	}
-	urLog.Debug("JSON request body decoded successfully!")
-
-	// Create the relationship
-
-	// Check if strict relationships are enabled, in which case we will only
-	// create if this relationship is defined in the application config
-	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
-		urLog.Debug("Strict")
-	}
-
-	return nil
-}
-
-/*
-
-// CreateEndpoint2 ++
-func CreateEndpoint2(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	var p map[string]string
-	err := decodeJSONBody(w, r, &p)
-	if err != nil {
-		hnLog.Fatal(err.Error())
-	}
-	w.WriteHeader(200)
+	// Send the results back to the client
 	w.Header().Set("Content-Type", "application/json")
-	t, err := json.Marshal(p)
+	t, err := json.Marshal(docsnap.Data())
 	io.WriteString(w, string(t))
-	hnLog.Info(string(t))
+
+	return err
+
+}
+
+// RetrieveSingleRelationship handles pulling information from the database and returning it to the HTTP client.
+func RetrieveSingleRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	reLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		reLog = params.VerboseLogger()
+	}
+	reLog.Debug("request parameters retrieved")
+
+	// Get this relationship type for this user
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	docsnap, err := doc.Get(r.Context())
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+	dataMap, err := docsnap.DataAt(params.Relationship)
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+
+	// Send the results back to the client
+	w.Header().Set("Content-Type", "application/json")
+	t, err := json.Marshal(dataMap.(map[string]interface{})[params.UUIDTarget].(int64))
+	io.WriteString(w, string(t))
+
+	return err
+
+}
+
+// RetrieveUserRelationshipsByType handles pulling information from the database and returning it to the HTTP client.
+func RetrieveUserRelationshipsByType(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	reLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		reLog = params.VerboseLogger()
+	}
+	reLog.Debug("request parameters retrieved")
+
+	// Get this relationship type for this user
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	docsnap, err := doc.Get(r.Context())
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+	dataMap, err := docsnap.DataAt(params.Relationship)
+	if err != nil {
+		reLog.WithFields(logrus.Fields{"error": err.Error()}).Error("Cannot process client input")
+		return fmt.Errorf("Cannot process client input: %w", err.Error())
+	}
+
+	// Send the results back to the client
+	w.Header().Set("Content-Type", "application/json")
+	t, err := json.Marshal(dataMap)
+	io.WriteString(w, string(t))
 
 	return err
 }
 
-// CreateEndpoint is WIP
-//func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
-func CreateEndpoint(cfg *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
-	// Check that the content header (if set) is application/json
-	if r.Header.Get("Content-Type") != "" {
-		value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
-		hnLog.Info(value)
-
-		if value != "application/json" {
-			err := errors.New("Content-Type header is not application/json")
-			return StatusError{415, err}
-		}
+// CreateRelationship ...
+func CreateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	crLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
+	if err != nil {
+		return err
 	}
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		crLog = params.VerboseLogger()
+	}
+	crLog.Debug("request parameters retrieved")
 
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/json")
-	var readLimit int64
-	readLimit = 500
+	// Create the relationship
+	newdata := make(map[string]map[string]interface{})
+	newdata[params.Relationship] = make(map[string]interface{})
+	newdata[params.Relationship][params.UUIDTarget] = params.Delta
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	if params.IsMultipleDirection() {
+		// Multiple relationships to create; make a batch
+		crLog.Debug("attempting bi-directional relationship batch")
+		batch := ac.DB.(*firestore.Client).Batch()
+		// First relationship is already ready to go because it's the same as a single directional relationship update
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
 
-	//body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
-	if r.Body != nil {
-		body, err := ioutil.ReadAll(io.LimitReader(r.Body, readLimit))
-		//body, err := ioutil.ReadAll(r.Body)
-		_ = body
-		// https: //stackoverflow.com/questions/32710847/what-is-the-best-way-to-check-for-empty-request-body
+		// Add a second write query for the reciprocal relationship
+		newdata[params.Relationship] = make(map[string]interface{})
+		newdata[params.Relationship][params.UUIDSource] = params.Delta
+		doc = ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDTarget)
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
+
+		// Send in the batch update
+		_, err := batch.Commit(r.Context())
 		if err != nil {
-			hnLog.Printf("Error reading body: %v", err)
-			return StatusError{400, err}
+			crLog.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("failure when attempting bi-directional relationship create")
+			return err
 		}
+		crLog.Info("bi-directional relationship created")
 
-		if len(body) > 0 {
-			io.WriteString(w, string(body))
-			return nil
-		}
+	} else {
+		// single relationship create
+		crLog.Debug("attempting uni-directional relationship create")
+		doc.Set(r.Context(),
+			newdata,
+			firestore.MergeAll)
+		crLog.Info("uni-directional relationship created")
 	}
-	io.WriteString(w, `{"body": "nope"}`)
-	return nil
-}*/
+
+	return err
+}
+
+// DeleteRelationship ...
+func DeleteRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	drLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
+	if err != nil {
+		return err
+	}
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		drLog = params.VerboseLogger()
+	}
+	drLog.Debug("request parameters retrieved")
+
+	// Delete the relationship
+	newdata := make(map[string]map[string]interface{})
+	newdata[params.Relationship] = make(map[string]interface{})
+	newdata[params.Relationship][params.UUIDTarget] = firestore.Delete
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	if params.IsMultipleDirection() {
+		// Multiple relationships to create; make a batch
+		drLog.Debug("attempting bi-directional relationship batch")
+		batch := ac.DB.(*firestore.Client).Batch()
+		// First relationship is already ready to go because it's the same as a single directional relationship update
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
+
+		// Add a second write query for the reciprocal relationship
+		newdata[params.Relationship] = make(map[string]interface{})
+		newdata[params.Relationship][params.UUIDSource] = firestore.Delete
+		doc = ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDTarget)
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
+
+		// Send in the batch update
+		_, err := batch.Commit(r.Context())
+		if err != nil {
+			drLog.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("failure when attempting bi-directional relationship delete")
+			return err
+		}
+		drLog.Info("bi-directional relationship deleted")
+
+	} else {
+		// single relationship delete
+		drLog.Debug("attempting uni-directional relationship delete")
+		doc.Set(r.Context(),
+			newdata,
+			firestore.MergeAll)
+		drLog.Info("uni-directional relationship deleted")
+	}
+
+	return err
+}
+
+//UpdateRelationship ...
+func UpdateRelationship(ac *config.AppConfig, w http.ResponseWriter, r *http.Request) error {
+	// Retrieve request input parameters from Context & validate them
+	// This is populated by middleware.go:NormalizeRequestParams()
+	urLog := hnLog
+	params, err := retrieveAndValidateParameters(ac, r)
+	if err != nil {
+		return err
+	}
+	if verbose, _ := ac.Cfg.BoolOr("logging.verbose", true); verbose == true {
+		urLog = params.VerboseLogger()
+	}
+	urLog.Debug("request parameters retrieved")
+
+	// Delete the relationship
+	newdata := make(map[string]map[string]interface{})
+	newdata[params.Relationship] = make(map[string]interface{})
+	newdata[params.Relationship][params.UUIDTarget] = firestore.Increment(params.Delta)
+	doc := ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDSource)
+	if params.IsMultipleDirection() {
+		// Multiple relationships to create; make a batch
+		urLog.Debug("attempting bi-directional relationship batch")
+		batch := ac.DB.(*firestore.Client).Batch()
+		// First relationship is already ready to go because it's the same as a single directional relationship update
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
+
+		// Add a second write query for the reciprocal relationship
+		newdata[params.Relationship] = make(map[string]interface{})
+		newdata[params.Relationship][params.UUIDSource] = firestore.Increment(params.Delta)
+		doc = ac.DB.(*firestore.Client).Collection("users").Doc(params.UUIDTarget)
+		batch.Set(doc,
+			newdata,
+			firestore.MergeAll)
+
+		// Send in the batch update
+		_, err := batch.Commit(r.Context())
+		if err != nil {
+			urLog.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("failure when attempting bi-directional relationship delete")
+			return err
+		}
+		urLog.Info("bi-directional relationship deleted")
+
+	} else {
+		// single relationship delete
+		urLog.Debug("attempting uni-directional relationship delete")
+		doc.Set(r.Context(),
+			newdata,
+			firestore.MergeAll)
+		urLog.Info("uni-directional relationship deleted")
+	}
+
+	return err
+}

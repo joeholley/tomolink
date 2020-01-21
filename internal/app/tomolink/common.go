@@ -31,10 +31,12 @@
 package tomolink
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/joeholley/tomolink/internal/config"
+	"github.com/joeholley/tomolink/internal/models"
 )
 
 // Error represents a handler error. It provides methods for a HTTP status
@@ -84,4 +86,18 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.StatusInternalServerError)
 		}
 	}
+}
+
+// retrieveAndValidateParameters just handles the common code every handler
+// uses to retrieve and validate the client's request parameters.
+func retrieveAndValidateParameters(ac *config.AppConfig, r *http.Request) (*models.Relationship, error) {
+	// Retrieve request input parameters from the request Context & validate them
+	// This request context value is populated by middleware.go:NormalizeRequestParams()
+	params := r.Context().Value("params").(*models.Relationship)
+	err := params.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("cannot process parameters as provided: %w", err)
+	}
+
+	return params, nil
 }

@@ -25,6 +25,7 @@ import (
 )
 
 // String constants to make our path construction more readable.
+const usersPath = "users"
 const source = "{UUIDSource}"
 const target = "{UUIDTarget}"
 const relStart = "{relationship"
@@ -43,7 +44,12 @@ var (
 // You can find the code for the handlers in handlers.go
 func Router(ac *config.AppConfig) *mux.Router {
 	r := mux.NewRouter()
+	r.Use(normalizeRequestParams)
 	users := r.PathPrefix("/users").Subrouter()
+	// This subrouter looks useless since there's not a path prefix, but it is
+	// necessary to allow us to put middleware only on routes that need
+	// relationship checking, not all routes.
+	relationships := r.PathPrefix("").Subrouter()
 
 	// Check if strict relationships are enabled, in which case we will only
 	// process a relationship request if this relationship is defined in the
@@ -52,11 +58,17 @@ func Router(ac *config.AppConfig) *mux.Router {
 		tlLog.Info("Strict relationships turned ON, parsing config to generate routes")
 		// Start a regex unnamed group
 		relRegex = ":(?:"
-		for rel, _ := range ac.Relationships {
+		for rel := range ac.Relationships {
 			relRegex = relRegex + rel + "|"
 		}
 		// Remove last trailing vertical pipe and finish the group
 		relRegex = relRegex[:len(relRegex)-1] + ")"
+
+		// Middleware for strict relationship validation.  It only goes on the
+		// subrouters, so that routes attached directly to the router 'r'
+		// doen't get strict relationship checking
+		users.Use(ac.StrictMW)
+		relationships.Use(ac.StrictMW)
 
 	}
 	// This is accomplished by creating a regex that matches using an unnamed
@@ -76,12 +88,14 @@ func Router(ac *config.AppConfig) *mux.Router {
 
 	// Relationship types that support retreiving a single relationship 'score'
 	// GET endpoint for one score of this relationship type
+	name := "todo"
 	route := "/" + source + "/" + relationship + "/" + target
 	users.Handle(route, Handler{ac, RetrieveSingleRelationship}).
 		Methods("GET").
 		Name("TODO")
 	tlLog.WithFields(logrus.Fields{
 		"route": fmt.Sprintf("/users%s", route),
+		"name":  name,
 	}).Info("Added route")
 
 	// GET endpoint for all of one relationship type of a given user
@@ -91,54 +105,57 @@ func Router(ac *config.AppConfig) *mux.Router {
 		Name("TODO2")
 	tlLog.WithFields(logrus.Fields{
 		"route": fmt.Sprintf("/users%s", route),
+		"name":  name,
 	}).Info("Added route")
 
 	// GET endpoint for all relationships of a given user
-	route = "/" + source
-	users.Handle(route, Handler{ac, RetrieveUserRelationships}).
+	route = "/" + usersPath + "/" + source
+	// This one goes on the main router rather than a subrouter, as the subrouters
+	// use middleware to check for the validity of the relationship type passed
+	// by the client, and this client request doesn't include a relationship
+	// type at all!
+	r.Handle(route, Handler{ac, RetrieveUserRelationships}).
 		Methods("GET").
 		Name("TODO3")
 	tlLog.WithFields(logrus.Fields{
 		"route": fmt.Sprintf("/users%s", route),
+		"name":  name,
 	}).Info("Added route")
 
 	tlLog.Info("All configured relationship endpoints created")
 
 	// POST endpoint to create relationship (or multiple mutual relationships)
 	route = "/createRelationship"
-	r.Handle(route, Handler{ac, CreateRelationship}).
+	relationships.Handle(route, Handler{ac, CreateRelationship}).
 		Headers("Content-Type", "application/json").
 		Methods("POST").
 		Name("TODO4")
 	tlLog.WithFields(logrus.Fields{
 		"route": route,
+		"name":  name,
 	}).Info("Added route")
 
 	// POST endpoint to update relationship (or multiple mutual relationships)
 	route = "/updateRelationship"
-	r.Handle(route, Handler{ac, UpdateRelationship}).
+	relationships.Handle(route, Handler{ac, UpdateRelationship}).
 		Headers("Content-Type", "application/json").
 		Methods("POST").
 		Name("TODO5")
 	tlLog.WithFields(logrus.Fields{
 		"route": route,
+		"name":  name,
 	}).Info("Added route")
 
 	// DELETE endpoint to delete relationship (or multiple mutual relationships)
 	route = "/deleteRelationship"
-	r.Handle(route, Handler{ac, DeleteRelationship}).
+	relationships.Handle(route, Handler{ac, DeleteRelationship}).
 		Headers("Content-Type", "application/json").
 		Methods("DELETE").
 		Name("TODO6")
 	tlLog.WithFields(logrus.Fields{
 		"route": route,
+		"name":  name,
 	}).Info("Added route")
-
-	// Middleware handles strict relationship checking if enabled
-	// Look for strict relationships flag in the config; default to true
-	if strict, _ := ac.Cfg.BoolOr("relationships.strict", true); strict == true {
-		r.Use(ac.Strict)
-	}
 
 	return r
 }

@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package tomolink
+package json
 
 import (
 	"encoding/json"
@@ -41,7 +41,7 @@ func (mr *malformedRequest) Error() string {
 	return mr.msg
 }
 
-func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 
 	maxLength := 4096 // Sane defaul of 4k max request size
 	if value, err := strconv.Atoi(os.Getenv("TL_REQ_MAX_LENGTH")); err == nil {
@@ -77,7 +77,7 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 			return &malformedRequest{status: http.StatusBadRequest, msg: msg}
 
 		case errors.Is(err, io.EOF):
-			msg := "Request body must not be empty"
+			msg := "Request body is empty"
 			return &malformedRequest{status: http.StatusBadRequest, msg: msg}
 
 		case err.Error() == "http: request body too large":

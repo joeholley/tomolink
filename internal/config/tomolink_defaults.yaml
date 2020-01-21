@@ -18,8 +18,8 @@ logging:
     verbose: true
 database:
     engine: firestore
-    #id: "*detect-project-id*" # in the case of firestore, should be set to the GCP project ID 
-    id: "my-project-id" # in the case of firestore, should be set to the GCP project ID 
+    id: "*detect-project-id*" # in the case of firestore, should be set to the GCP project ID 
+    #id: "my-project-id" 
     options:
         grpc:
             pool: 20
@@ -36,7 +36,7 @@ relationships:
     definitions:
         0:
             name: friends
-            type: timestamp     # timestamp, score, list
+            type: score         # currently supported: "score", "list"
         1:
             name: influencers
             type: score

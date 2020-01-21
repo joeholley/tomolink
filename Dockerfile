@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+MAINTAINER joeholley@google.com
+LABEL 
 
 # build stage
 FROM golang:1.13 as builder
@@ -27,12 +29,42 @@ RUN go mod download
 COPY . .
 
 RUN go test ./...
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tomolink 
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tomolink cmd/httpserver.go
 
 # final stage
-FROM scratch
-COPY --from=builder /app/tomolink /app/cmd/tomolink
+FROM gcr.io/distroless/static:nonroot
+COPY --from=builder --chown=nonroot "/app/tomolink" "/app/"
 EXPOSE 8080
-# If you need default env vars for your environment: 
-# ENV KEY1=VALUE1,KEY2=VALUE2
+
 ENTRYPOINT ["/app/tomolink"]
+
+# Docker Image Arguments
+ARG BUILD_DATE
+ARG VCS_REF
+ARG BUILD_VERSION
+
+# Standardized Docker Image Labels
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+LABEL \
+    org.opencontainers.image.created="${BUILD_TIME}" \
+    org.opencontainers.image.authors="Google LLC <joeholley@google.com>" \
+    org.opencontainers.image.url="https://github.com/joeholley/tomolink" \
+    org.opencontainers.image.documentation="https://godoc.org/github.com/joeholley/tomolink" \
+    org.opencontainers.image.source="https://github.com/joeholley/tomolink/README.md" \
+    org.opencontainers.image.version="${BUILD_VERSION}" \
+    org.opencontainers.image.revision="1" \
+    org.opencontainers.image.vendor="Google LLC" \
+    org.opencontainers.image.licenses="Apache-2.0" \
+    org.opencontainers.image.ref.name="" \
+    org.opencontainers.image.title="${IMAGE_TITLE}" \
+    org.opencontainers.image.description="GCP-native gaming friends service" \
+    org.label-schema.schema-version="1.0" \
+    org.label-schema.build-date=$BUILD_DATE \
+    org.label-schema.url="" \
+    org.label-schema.vcs-url="https://github.com/joeholley/tomolink" \
+    org.label-schema.version=$BUILD_VERSION \
+    org.label-schema.vcs-ref=$VCS_REF \
+    org.label-schema.vendor="Google LLC" \
+    org.label-schema.name="${IMAGE_TITLE}" \
+    org.label-schema.description="GCP-native gaming friends service" \
+    org.label-schema.usage="https://github.com/joeholley/tomolink/README.md"
