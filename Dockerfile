@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-MAINTAINER joeholley@google.com
-LABEL 
 
 # build stage
 FROM golang:1.13 as builder
@@ -43,6 +41,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BUILD_VERSION
 
+MAINTAINER joeholley@google.com
 # Standardized Docker Image Labels
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md
 LABEL \
