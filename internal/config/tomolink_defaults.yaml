@@ -36,7 +36,7 @@ relationships:
     definitions:
         0:
             name: friends
-            type: score         # currently supported: "score", "list"
+            type: score        
         1:
             name: influencers
             type: score
@@ -45,7 +45,7 @@ relationships:
             type: score
         3:
             name: blocks
-            type: list
+            type: score
         4: Null
         5: Null
         6: Null

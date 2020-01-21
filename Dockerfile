@@ -31,7 +31,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tomolink cmd/httpserver.go
 
 # final stage
 FROM gcr.io/distroless/static:nonroot
-COPY --from=builder --chown=nonroot "/app/tomolink" "/app/"
+COPY --from=builder --chown=nonroot /app/tomolink /app/
+COPY --chown=nonroot internal/config/tomolink_defaults.yaml /app/ 
 EXPOSE 8080
 
 ENTRYPOINT ["/app/tomolink"]
