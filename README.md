@@ -1,5 +1,5 @@
 # Tomolink
-Tomolink is an open source friends and social graph service for games.
+Tomolink is an open source friend/block/relationship service for games. It allows you to store, retrieve, and delete arbitrary directed relationships at scale.
 
 ## Contributing to Tomolink
 
