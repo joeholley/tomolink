@@ -10,7 +10,11 @@ Tomolink can be run locally in your development environment, using the Firestore
 1. Clone the source repository, if you haven't already.  It is recommended you clone it to your local golang `src/` directory, but you can also set your [GOPATH](https://github.com/golang/go/wiki/GOPATH) instead if you feel comfortable doing so.
 ```bash
 #TODO: update with final github URI
-git clone https://github.com/joeholley/tomolink-wip.git
+git clone https://github.com/joeholley/tomolink.git
+```
+It is recommended that you use the provided development config file when running Tomolink locally:
+```bash
+~/go/src/github.com/joeholley/tomolink$ ln -sf ../internal/config/local_dev.yaml cmd/tomolink_defaults.yaml
 ```
 2. Run a copy of the Firestore Emulator on a port that won't conflict with the default Tomolink port of 8080.  This example uses 8081.
 ```bash
@@ -94,7 +98,7 @@ These products cab incur charges, although typical usage would be eligible for t
 1. Clone the source repository, if you haven't already.
 ```bash
 #TODO: update with final github URI
-git clone https://github.com/joeholley/tomolink-wip.git
+git clone https://github.com/joeholley/tomolink.git
 ```
 2. If you don't have a `gcloud` command line environment set up and Cloud Build enabled on a Google Cloud Project, complete the ["Before You Begin"](https://cloud.google.com/cloud-build/docs/quickstart-docker#before-you-begin) and ["Log in to Google Cloud"](https://cloud.google.com/cloud-build/docs/quickstart-docker#log_in_to) steps from the [Cloud Build Quickstart for Docker](https://cloud.google.com/cloud-build/docs/quickstart-docker#log_in_to).  Stop when you get to the "Preparing source files" section of the guide, as you completed that in step #1.
 3. If you haven't already, enable the GCP [Container Registry API](https://console.cloud.google.com/flows/enableapi?apiid=containerregistry.googleapis.com&redirect=https://cloud.google.com/container-registry/docs/quickstart&_ga=2.79131540.1852199750.1580108081-50451190.1521501879) .

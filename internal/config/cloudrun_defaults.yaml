@@ -1,0 +1,53 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+dev: false 
+logging:
+    format: stackdriver 
+    level: info 
+    verbose: false 
+database:
+    engine: firestore
+    id: "*detect-project-id*" # When running in GCP, this will cause auto-detect of firestore project ID. Currently broken for emulator (https://github.com/googleapis/google-cloud-go/issues/1751)
+    options:
+        grpc:
+            pool: 20
+http:
+    port: 8080         # Port to serve on
+    gracefulwait: 15   # Seconds to wait for requests to finish if graceful shutdown of server is requested
+    request:
+        readLimit: 500 # Limit the size of incoming requests to something sensible, abuse prevention measure
+relationships:
+    strict: true 
+    # Out-of-the-box, Tomolink supports tracking of up to 10 different kinds of relationships.
+    # Doing this using a 0-indexed map instead of a standard YAML array is necessary to preserve
+    # the ability to override this config using env vars.  For more details, see docs/userguide.md
+    definitions:
+        0:
+            name: friends
+            type: score        
+        1:
+            name: influencers
+            type: score
+        2:
+            name: followers
+            type: score
+        3:
+            name: blocks
+            type: score
+        4: Null
+        5: Null
+        6: Null
+        7: Null
+        8: Null
+        9: Null
