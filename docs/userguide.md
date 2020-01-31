@@ -11,6 +11,13 @@ The API provides 6 endpoints:
 1) `/users/<uuidsource>/<relationship>` to retrieve all relationships of the given type for the provided user ID. 
 1) `/users/<uuidsource>/<relationship>/<uuidtarget>` to retrieve the value of one relationship from the provided source user ID to the target user ID. 
 
+## Tomolink client limitations
+Tomolink is exposed as an HTTP API and can be used with any HTTP library/client that can send JSON in the request body. It is **not**, however, recommended to talk to Tomolink directly from your end user clients (game/app)! **You should route your Tomolink calls through your own online services (game servers, platform services, etc).** This means:
+
+* **Again, because it is important**: Tomolink does **NOT** handle authorization or authentication, beyond the built-in controls GCP exposes for [Cloud Run invoker access](https://cloud.google.com/run/docs/authenticating/overview) - which is not a good solution for end-user authentication. It is expected that in production, you only access Tomolink from other parts of your game services backend infrastructure that you trust to act on behalf of your authenticated users.  _Any call from any client that has Cloud Run invoker permissions to access Tomolink can create/retrieve/update/delete **any** data in Tomolink!_
+* Tomolink does not provide any way to 'subscribe' for updates to a user's relationships. If you need this kind of functionality, you should notify clients of changes using a separate notification mechanism. 
+* Tomolink does not have any built-in rate limiting or abuse prevention measures beyond ignoring requests of implausibliy large size. 
+
 ## Updating Configuration
 
 Tomolink accepts a YAML config file called [tomolink_defaults.yaml](../cmd/tomolink_defaults.yaml). All of the values in the config file can also be overridden by environment variable. To do so, set an environment variable with the same name as the _dot notation of the YAML config parameter_, with all upper-case letters, and underscores in place of periods. For example, the config parameters for setting up the HTTP API in the YAML file look like this:
@@ -21,8 +28,13 @@ http:
     request:
         readLimit: 500 # Limit the size of incoming requests to something sensible, abuse prevention measure
 ```
-
-They could be overwritten by setting the following environment variables:
+The dot-notation for these YAML fields are:
+```
+http.port
+http.gracefulwait
+http.request.readLimit
+```
+Therefore, these field's values could be overwritten by setting the following environment variables:
 ```bash
 HTTP_PORT=8000
 HTTP_GRACEFULWAIT=20
@@ -31,7 +43,7 @@ HTTP_REQUEST_READLIMIT=1200
 
 ### Setting a default config
 
-If you want to change the default configuration for your Tomolink deployments (for example, to [specify relationship types](#choosing-relationships)), you can make changes to [tomolink_defaults.yaml](../cmd/tomolink_defaults.yaml) and rebuild the Tomolink docker container](development.md#building-tomolink).  
+If you want to change the default configuration for your Tomolink deployments (for example, to [specify relationship types](#choosing-relationships)), you can make changes to [tomolink_defaults.yaml](../cmd/tomolink_defaults.yaml) and rebuild the Tomolink docker container](builddeploy.md).  
 
 ### Config on Cloud Run
 
