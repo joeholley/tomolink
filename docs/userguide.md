@@ -34,7 +34,7 @@ http.port
 http.gracefulwait
 http.request.readLimit
 ```
-Therefore, these field's values could be overwritten by setting the following environment variables:
+Therefore, these field's values could be overwritten by setting environment variables, like this:
 ```bash
 HTTP_PORT=8000
 HTTP_GRACEFULWAIT=20
@@ -51,20 +51,19 @@ If you want to specify some configuration overrides that differ from the default
 
 ### Confirming config settings
 
-If you want to verify that your overridden config settings are being used by Tomolink, look in the logs.  Tomolink outputs a line for every config parameter override it processes on startup.
+If you want to verify that your environment variables are being picked up and overriding the config settings in the YAML file, look in the logs.  Tomolink outputs a line for every config parameter override it processes on startup.
 
 ## Choosing the Relationships
 
 Tomolink can track a user's `friends`, the `influencers` they follow, and the other users they have chosen to `block` in its default configuration, but by arbitrary, we mean it: you can choose _nearly any string_ to represent a relationship you want to track.  Do you want to track that one user `supports` another, or has a certain level of `distrust`, or has a `friendRequestPending`?  Tomolink can help! 
 
 ### Strict vs non-strict
-Tomolink has the option to turn on or off **"strict"** relationships.  
+Tomolink can be configured to operate in **strict** relationship mode.
 
-With strict relationships **disabled**, any create or update API call will try to save the relationship specifed in the provided [request JSON](#sending-input-parameters-in-the-json-body). 
+With strict relationships **disabled**, any create or update API call will try to save the relationship specifed in the provided [request JSON](#sending-input-parameters-in-the-json-body).  So, if you want to create a new kind of relationship, just make a `createRelationship` call with your new `relationship` name: that's it!  As long as the `relationship` string is valid, Tomolink will store it.
 
-
-When strict relationships are **enabled**, Tomolink will only accept API calls that specify one of the (up to) ten relationships defined in the [configuration](#updating-configuration).  All configured relationships have a [`name`](#relationship-names) 
-
+When strict relationships are **enabled**, Tomolink will only accept API calls that specify one of the (up to) ten relationships defined in the [configuration](#updating-configuration).  Just populate a `name` field for one of the ten relationship slots in the config, and make sure the `strict` field value under `relationship` is set to `true`.  Tomolink will process your config on startup and only set up endpoints to retrieve the `relationship` names you chose.
+ 
 ### Relationship Names
 
 Most strings are fine, but avoid using periods: refer to the [Field Names](https://cloud.google.com/firestore/docs/best-practices#field_names) section of the Firestore Best Practices documentation if you want to learn more about the limitations of what strings you can use for relationship types.
@@ -74,12 +73,12 @@ Not only does it offer flexibility in the type of relationships you want to trac
  
 * Using scores to track the intensity of the relationship
 * Putting timestamps in the score field to track the age of relationships or create expiring relationships
-* Establishing an enumeration where different score values represent different relationship states
+* Using an enumeration where different score values represent different relationship states (`1`: 'pending', `2`: 'accepted', `0`: 'deleted', etc)
 * and more!
 
 If you don't have a compelling use for the score field, we recommend that you simply store a integer `1` as the score for active relationships.  In this way, you could easily 'deactivate' relationships without deleting them by setting the score to `0`.
 
-Feel free to choose how you use and interperet the score on a per-relationship-type basis. We suggest using the same system for every relationship of a given type in order to keep complexity managable.  Please have a look at the [use case tutorials](use_case_tutorials.md) document for full explanations of some of the advanced ways of scoring relationships.
+Feel free to choose how you use and interperet the score on a per-relationship-type basis. Please have a look at the [use case tutorials](use_case_tutorials.md) document for full explanations of some of the advanced ways of scoring relationships.
 
 ## Relationship parameters
 When sending an update to the Tomolink service, you must always specify the source and target user IDs, the relationship, and the change to the [score](#using-scores) (the _delta_). Currently you must also specify the _direction_ of the relationship, but this should be considered likely to change in the future.  Some illustrative examples:
@@ -124,4 +123,8 @@ These three API calls expect you to specify the parameters of your request in th
 * `/users/<uuidsource>/<relationship>`
 * `/users/<uuidsource>/<relationship>/<uuidtarget>`
 
-Since these retrieval API calls have no need of a **delta** or **direction** parameter, there isn't one in the URI. 
+These retrieval API calls have **delta** or **direction** parameter, as they are not relevant. 
+
+## Interpreting Relationships
+
+Tomolink is unopinionated with regards to how your game/app interperets the relationships it stores, so feel free to approach it in whatever way makes the most sense for your design. Maybe a `friend` relationship score of `100` means that one user can borrow another's resources, or an `influencer` score of greater than `20` can moderate the stream's chat room.  It's completely up to you - Tomolink only stores, updates, and deletes the data you specify.  If you'd like to see some suggested patterns, please have a look at the [use case tutorials](use_case_tutorials.md) document.
