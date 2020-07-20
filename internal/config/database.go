@@ -21,7 +21,7 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/firestore"
-	"github.com/joeholley/tomolink/internal/database/memory"
+	//"github.com/joeholley/tomolink/internal/database/memory"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )
@@ -63,7 +63,7 @@ func (ac *AppConfig) Connect(dbEngine string) error {
 		}
 	case "memory":
 		// TODO: NYI, this is for local testing in the future
-		ac.DB = memory.NewClient()
+		//ac.DB = memory.NewClient()
 
 	}
 
