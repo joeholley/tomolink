@@ -123,7 +123,7 @@ These three API calls expect you to specify the parameters of your request in th
 * `/users/<uuidsource>/<relationship>`
 * `/users/<uuidsource>/<relationship>/<uuidtarget>`
 
-These retrieval API calls have **delta** or **direction** parameter, as they are not relevant. 
+These retrieval API calls have no **delta** or **direction** parameter, as they are not relevant. 
 
 ## Interpreting Relationships
 
